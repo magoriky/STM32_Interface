@@ -4,6 +4,8 @@
 #include "semphr.h"
 #include <string.h>
 #include <stdio.h>
+#include "logger.h"
+#include <stdbool.h>
 
 #define LOG_FLASH_START_ADDR  ((uint32_t)0x081C0000)
 #define LOG_FLASH_END_ADDR    ((uint32_t)0x08200000)
@@ -18,6 +20,30 @@ extern UART_HandleTypeDef huart6;
 
 
 
+
+bool LoggerFlash_WriteStruct(const void* entry) {
+    if (!entry) return false;
+    const LogEntry_t* log = (const LogEntry_t*)entry;
+
+    xSemaphoreTake(flash_mutex, portMAX_DELAY);
+
+    if (flash_log_ptr + sizeof(LogEntry_t) > LOG_FLASH_END_ADDR) {
+        flash_log_ptr = LOG_FLASH_START_ADDR;
+    }
+
+    HAL_FLASH_Unlock();
+
+    for (uint32_t i = 0; i < sizeof(LogEntry_t); i += 4) {
+        uint32_t word = 0xFFFFFFFF;
+        memcpy(&word, ((uint8_t*)log) + i, 4);
+        HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, flash_log_ptr, word);
+        flash_log_ptr += 4;
+    }
+
+    HAL_FLASH_Lock();
+    xSemaphoreGive(flash_mutex);
+    return true;
+}
 
 void Flash_Log_Init(void)
 {
