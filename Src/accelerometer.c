@@ -8,6 +8,7 @@
 #include "shell.h"
 #include "task.h"
 #include <math.h>
+#include "logger.h"
 
 static TimerHandle_t sensor_timer = NULL;
 static QueueHandle_t sensor_queue = NULL;
@@ -22,7 +23,8 @@ static void read_accel_xyz(AccelData* data)
 	//    status = HAL_I2C_Mem_Read(&hi2c2, ADXL345_ADDRESS, ADXL345_DATAX0, I2C_MEMADD_SIZE_8BIT, raw_data, 6, 1000);
 	    status = HAL_I2C_Mem_Read(&hi2c2, ADXL345_ADDRESS, ADXL345_DATAX0, I2C_MEMADD_SIZE_8BIT, raw_data, 6, 1000);
 	    if (status != HAL_OK) {
-	    LOG_ERROR("There is no communication with Accelerometer\r\n");
+	    Logger_Error("Accel","There is no communication with Accelerometer", xTaskGetTickCount());
+
 	    }
 
 	    data->x_raw = (int16_t)((raw_data[1] << 8) | raw_data[0]);
@@ -48,7 +50,7 @@ static void accel_timer_callback(TimerHandle_t xTimer){
 	data.timestamp_ms = xTaskGetTickCount();
 	BaseType_t result = xQueueOverwrite(sensor_queue, &data);
 	if (result != pdTRUE){
-		LOG_ERROR("[!] Failed to overwrite queue.\r\n");
+		Logger_Error("Accel","[!] Failed to overwrite queue.", xTaskGetTickCount());
 	}
 }
 
@@ -59,21 +61,25 @@ void Accel_adxl345_Init(void) {
     status = HAL_I2C_IsDeviceReady(&hi2c2, ADXL345_ADDRESS, 3, 1000);
     if (status != HAL_OK){
     	LOG_ERROR("HAL_I2C is not ready\r\n");
+    	Logger_Error("Accel","HAL_I2C is not ready", xTaskGetTickCount());
     }
      status = HAL_I2C_Mem_Read(&hi2c2, ADXL345_ADDRESS, ADXL345_DEVID_REG, I2C_MEMADD_SIZE_8BIT, &device_id, 1, 1000);
      if (status != HAL_OK || device_id != ADXL345_DEVICE_ID){
-    	 LOG_ERROR("HAL is not ok or device id is wrong \r\n");
+
+    	 Logger_Error("Accel","HAL is not ok or device id is wrong", xTaskGetTickCount());
      }
     config_data = ADXL345_RANGE_2G | 0x08;
     status = HAL_I2C_Mem_Write(&hi2c2, ADXL345_ADDRESS, ADXL345_DATA_FORMAT, I2C_MEMADD_SIZE_8BIT, &config_data, 1, 1000);
     if (status != HAL_OK){
-       	LOG_ERROR("HAL_I2C is not ok\r\n");
+
+        Logger_Error("Accel","HAL_I2C is not ok", xTaskGetTickCount());
+
        }
 
       config_data = ADXL345_MEASURE_MODE;
       HAL_I2C_Mem_Write(&hi2c2, ADXL345_ADDRESS, ADXL345_POWER_CTL, I2C_MEMADD_SIZE_8BIT, &config_data, 1, 1000);
       if (status != HAL_OK){
-           	LOG_ERROR("HAL_I2C is not ok\r\n");
+            Logger_Error("Accel","HAL_I2C is not ok", xTaskGetTickCount());
         }
       vTaskDelay(pdMS_TO_TICKS(50));
 
@@ -87,12 +93,12 @@ void Accel_adxl345_Init(void) {
 BaseType_t Accel_GetLatest(AccelData *out_data)
 {
 	  if (sensor_queue == NULL) {
-	        LOG_ERROR("[Accelerometer] Queue not initialized!\r\n");
+	        Logger_Error("Accel"," Queue not initialized!", xTaskGetTickCount());
 	        return pdFAIL;
 	    }
 	  BaseType_t result = xQueuePeek(sensor_queue, out_data, 0);
 	  	 if (result != pdPASS) {
-	  	        LOG_ERROR("[Accelerometer] Queue is empty!\r\n");
+	  	      Logger_Error("Accel","Queue is empty!", xTaskGetTickCount());
 	  	        return pdFAIL;
 	  	    }
 	  return result;

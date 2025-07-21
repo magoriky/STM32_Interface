@@ -7,8 +7,39 @@
 #include "sensor.h"
 #include "led_control.h"
 #include "accelerometer.h"
-
+#include "logger_flash.h"
+#include <stdio.h>
 extern UART_HandleTypeDef huart6;
+
+
+
+
+
+void ShellCmd_Log(int argc, char** argv) {
+    if (argc == 1 || (argc == 2 && strcmp(argv[1], "read") == 0)) {
+        LoggerFlash_ReadAll();
+        Shell_Print("\r\n");
+    }
+    else if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+        LoggerFlash_Erase();
+        Shell_Print("Flash log cleared.\r\n");
+    }
+    else if (argc == 3 && strcmp(argv[1], "page") == 0) {
+        int page = atoi(argv[2]);
+        if (page < 0) {
+            Shell_Print("Invalid page number.\r\n");
+        } else {
+            LoggerFlash_ReadPage((uint8_t)page, 10);  // 10 logs per page
+        }
+    } else {
+        Shell_Print("Usage:\r\n");
+        Shell_Print("  log read         - Read all logs\r\n");
+        Shell_Print("  log clear        - Erase logs\r\n");
+        Shell_Print("  log page <n>     - Read logs by page\r\n");
+    }
+}
+
+
 
 
 void ShellCmd_get_accel(int argc, char** argv)
@@ -105,15 +136,55 @@ void ShellCmd_hello(int argc, char** argv)
     LOG_INFO("Hello from RTOS shell\r\n");
 }
 
-void ShellCmd_help(int argc, char** argv){
-	LOG_INFO("Available commands:\r\n");
-	char buf[64];
-	for (int i=0; i< shell_command_count; ++i){
-		snprintf(buf, sizeof(buf), " -%s | %s\r\n", shell_commands[i].cmd, shell_commands[i].desc);
-		Shell_Print(buf);
-	}
 
+void Shell_PrintSeparator(int col1_width, int col2_width) {
+    char line[128];
+    int pos = 0;
+
+    // First column dashes
+    memset(line + pos, '-', col1_width);
+    pos += col1_width;
+
+    // Separator
+    line[pos++] = '|';
+
+    // Second column dashes
+    memset(line + pos, '-', col2_width);
+    pos += col2_width;
+
+    // Line ending
+    line[pos++] = '\r';
+    line[pos++] = '\n';
+    line[pos] = '\0';
+
+    Shell_Print(line);
 }
+
+
+
+void ShellCmd_help(int argc, char** argv) {
+    Shell_Print("Available commands\r\n");
+    printf("%-19s | %-40s\r\n", "Function", "Description");
+   Shell_PrintSeparator(20,20);
+
+    char buf[128];
+    for (int i = 0; i < shell_command_count; ++i) {
+        snprintf(buf, sizeof(buf), " %-18s | %-40s\r\n", shell_commands[i].cmd, shell_commands[i].desc);
+        Shell_Print(buf);
+    }
+}
+
+
+
+
+//	LOG_INFO("Available commands:\r\n");
+//	char buf[64];
+//	for (int i=0; i< shell_command_count; ++i){
+//		snprintf(buf, sizeof(buf), " -%s | %s\r\n", shell_commands[i].cmd, shell_commands[i].desc);
+//		Shell_Print(buf);
+//	}
+
+
 void ShellCmd_setlogflash(int argc, char** argv) {
     // Example hardcoded toggle for INFO
     flash_log_enabled[SHELL_LOG_INFO] = !flash_log_enabled[SHELL_LOG_INFO];
@@ -147,6 +218,7 @@ const ShellCommand shell_commands[] = {
 		 {"memory_usage", ShellCmd_get_memory_data, "Get memory information"},
 		 {"whoami", ShellCmd_whoami, "Show logged-in username"},
 		 {"clear", ShellCmd_clear, "Clear the screen"},
+		 { "log", ShellCmd_Log, "Open Log files" }
 
 };
 const int shell_command_count = sizeof(shell_commands) / sizeof(ShellCommand);

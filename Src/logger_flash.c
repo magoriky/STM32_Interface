@@ -18,7 +18,63 @@ static SemaphoreHandle_t flash_mutex = NULL;
 extern UART_HandleTypeDef huart6;
 #define SHELL_UART (&huart6)
 
+void LoggerFlash_ReadPage(uint8_t page, uint8_t logsPerPage) {
+    uint32_t addr = LOG_FLASH_START_ADDR;
+    uint32_t entry_size = sizeof(LogEntry_t);
 
+    // Support up to 1024 logs (adjust as needed)
+    const uint16_t max_logs = 1024;
+    uint32_t log_addresses[max_logs];
+    uint16_t count = 0;
+
+    // Step 1: Collect all valid log addresses
+    while (addr + entry_size <= LOG_FLASH_END_ADDR && count < max_logs) {
+        LogEntry_t entry;
+        memcpy(&entry, (const void*)addr, entry_size);
+
+        // Only accept logs with printable tag[0]
+        if (entry.level <= LOG_LEVEL_ERROR &&
+            entry.tag[0] != '\0' &&
+            entry.tag[0] != 0xFF &&
+            entry.tag[0] >= 32 && entry.tag[0] <= 126) {
+            log_addresses[count++] = addr;
+        }
+
+        addr += entry_size;
+    }
+
+    if (count == 0) {
+        printf("No logs found.\r\n");
+        return;
+    }
+
+    // Step 2: Calculate paging
+    uint32_t start_index = page * logsPerPage;
+    if (start_index >= count) {
+        printf("Page %u out of range. Max page: %lu\r\n", page, (count - 1) / logsPerPage);
+        return;
+    }
+
+    printf("Log Page %u (logs %lu to %lu of %u total)\r\n", page,
+           start_index,
+           (start_index + logsPerPage - 1 < count) ? start_index + logsPerPage - 1 : count - 1,
+           count);
+
+    // Step 3: Print logs on this page
+    for (uint16_t i = start_index; i < count && i < start_index + logsPerPage; ++i) {
+        LogEntry_t entry;
+        memcpy(&entry, (const void*)log_addresses[i], entry_size);
+
+        const char* levelStr = (entry.level == LOG_LEVEL_INFO) ? "INFO" :
+                               (entry.level == LOG_LEVEL_WARN) ? "WARN" : "ERROR";
+
+        char line[128];
+        int len = snprintf(line, sizeof(line), "[%s] [%lu ms] %s: %s\r\n",
+                           levelStr, entry.timestamp, entry.tag, entry.message);
+        HAL_UART_Transmit(&huart6, (uint8_t*)line, len, HAL_MAX_DELAY);
+
+    }
+}
 
 
 bool LoggerFlash_WriteStruct(const void* entry) {
