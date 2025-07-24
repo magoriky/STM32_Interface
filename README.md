@@ -1,6 +1,6 @@
 # STM32 FreeRTOS Embedded System Project
 
-![Video Description](path/to/video.mp4)
+![Video Description](embedded_interface.mp4)
 
 ## 🚀 Project Overview
 
