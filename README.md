@@ -1,10 +1,12 @@
 # STM32 FreeRTOS Embedded System Project
 
-![Demo](embedded_interface2.gif)
-
 ## 🚀 Project Overview
 
 An advanced embedded system built on **STM32F767ZI Nucleo** board featuring a custom shell interface, sensor monitoring, flash logging, and real-time task management. Designed for food technology applications with precision control and monitoring capabilities.
+
+## 🎥 Video Demonstration
+
+![Demo](embedded_interface2.gif)
 
 ## ✨ Key Features
 
@@ -195,36 +197,7 @@ The system efficiently manages memory with:
 - **Heap Monitoring**: Real-time heap usage tracking
 - **Stack Protection**: Overflow detection enabled
 
-## 🎥 Video Demonstration
 
-*[Video will be uploaded here showing the system in action]*
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-**GNK Food Tech Development Team**
-
-- 🍽️ Specialized in Food Technology Automation
-- 🔧 Embedded Systems Engineering
-- ⚡ Real-Time Control Systems
-
----
-
-<div align="center">
-
-**🚀 Powered by STM32 - Engineered for Excellence**
-
-*Automating Food Tech with Precision Control*
 
 </div>
